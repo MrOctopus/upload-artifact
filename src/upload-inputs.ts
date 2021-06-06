@@ -7,6 +7,11 @@ export interface UploadInputs {
   artifactName: string
 
   /**
+   * Flag paths as individual artifacts, disregarding name
+   */
+  individualArtifacts: boolean
+
+  /**
    * The search path used to describe what to upload as part of the artifact
    */
   searchPath: string

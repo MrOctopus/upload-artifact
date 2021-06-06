@@ -4020,53 +4020,71 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
+const path = __importStar(__webpack_require__(622));
 const artifact_1 = __webpack_require__(214);
 const search_1 = __webpack_require__(575);
 const input_helper_1 = __webpack_require__(583);
 const constants_1 = __webpack_require__(694);
+function uploadArtifact(inputs, searchResult) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (searchResult.filesToUpload.length === 0) {
+            // No files were found, different use cases warrant different types of behavior if nothing is found
+            switch (inputs.ifNoFilesFound) {
+                case constants_1.NoFileOptions.warn: {
+                    core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case constants_1.NoFileOptions.error: {
+                    core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+                case constants_1.NoFileOptions.ignore: {
+                    core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
+                    break;
+                }
+            }
+        }
+        else {
+            const s = searchResult.filesToUpload.length === 1 ? '' : 's';
+            core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
+            core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
+            if (searchResult.filesToUpload.length > 10000) {
+                core.warning(`There are over 10,000 files in this artifact, consider create an archive before upload to improve the upload performance.`);
+            }
+            const artifactClient = artifact_1.create();
+            const options = {
+                continueOnError: false
+            };
+            if (inputs.retentionDays) {
+                options.retentionDays = inputs.retentionDays;
+            }
+            let artifactName = inputs.artifactName;
+            if (inputs.individualArtifacts) {
+                core.info(`Using the root directory of individual paths as the artifact name.`);
+                artifactName = path.parse(searchResult.rootDirectory).name;
+            }
+            const uploadResponse = yield artifactClient.uploadArtifact(artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
+            if (uploadResponse.failedItems.length > 0) {
+                core.setFailed(`An error was encountered when uploading ${artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
+            }
+            else {
+                core.info(`Artifact ${artifactName} has been successfully uploaded!`);
+            }
+        }
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const inputs = input_helper_1.getInputs();
-            const searchResult = yield search_1.findFilesToUpload(inputs.searchPath);
-            if (searchResult.filesToUpload.length === 0) {
-                // No files were found, different use cases warrant different types of behavior if nothing is found
-                switch (inputs.ifNoFilesFound) {
-                    case constants_1.NoFileOptions.warn: {
-                        core.warning(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                        break;
-                    }
-                    case constants_1.NoFileOptions.error: {
-                        core.setFailed(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                        break;
-                    }
-                    case constants_1.NoFileOptions.ignore: {
-                        core.info(`No files were found with the provided path: ${inputs.searchPath}. No artifacts will be uploaded.`);
-                        break;
-                    }
+            if (inputs.individualArtifacts)
+                for (let i = 0; i < inputs.searchPath.length; i++) {
+                    const searchResult = yield search_1.findFilesToUpload(inputs.searchPath[i]);
+                    yield uploadArtifact(inputs, searchResult);
                 }
-            }
             else {
-                const s = searchResult.filesToUpload.length === 1 ? '' : 's';
-                core.info(`With the provided path, there will be ${searchResult.filesToUpload.length} file${s} uploaded`);
-                core.debug(`Root artifact directory is ${searchResult.rootDirectory}`);
-                if (searchResult.filesToUpload.length > 10000) {
-                    core.warning(`There are over 10,000 files in this artifact, consider create an archive before upload to improve the upload performance.`);
-                }
-                const artifactClient = artifact_1.create();
-                const options = {
-                    continueOnError: false
-                };
-                if (inputs.retentionDays) {
-                    options.retentionDays = inputs.retentionDays;
-                }
-                const uploadResponse = yield artifactClient.uploadArtifact(inputs.artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
-                if (uploadResponse.failedItems.length > 0) {
-                    core.setFailed(`An error was encountered when uploading ${uploadResponse.artifactName}. There were ${uploadResponse.failedItems.length} items that failed to upload.`);
-                }
-                else {
-                    core.info(`Artifact ${uploadResponse.artifactName} has been successfully uploaded!`);
-                }
+                const searchResult = yield search_1.findFilesToUpload(inputs.searchPath);
+                yield uploadArtifact(inputs, searchResult);
             }
         }
         catch (err) {
@@ -6575,7 +6593,8 @@ const constants_1 = __webpack_require__(694);
  */
 function getInputs() {
     const name = core.getInput(constants_1.Inputs.Name);
-    const path = core.getInput(constants_1.Inputs.Path, { required: true });
+    const individual = JSON.parse(core.getInput(constants_1.Inputs.Individual));
+    const path = core.getInput(constants_1.Inputs.Path, { required: true }).split(',');
     const ifNoFilesFound = core.getInput(constants_1.Inputs.IfNoFilesFound);
     const noFileBehavior = constants_1.NoFileOptions[ifNoFilesFound];
     if (!noFileBehavior) {
@@ -6583,6 +6602,7 @@ function getInputs() {
     }
     const inputs = {
         artifactName: name,
+        individualArtifacts: individual,
         searchPath: path,
         ifNoFilesFound: noFileBehavior
     };
@@ -7518,6 +7538,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Inputs;
 (function (Inputs) {
     Inputs["Name"] = "name";
+    Inputs["Individual"] = "individual";
     Inputs["Path"] = "path";
     Inputs["IfNoFilesFound"] = "if-no-files-found";
     Inputs["RetentionDays"] = "retention-days";

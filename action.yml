@@ -5,6 +5,9 @@ inputs:
   name:
     description: 'Artifact name'
     default: 'artifact'
+  individual:
+    description: 'Upload paths as individual artifacts. Will disregard the name input'
+    default: false
   path:
     description: 'A file, directory or wildcard pattern that describes what to upload'
     required: true

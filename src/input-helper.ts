@@ -7,7 +7,8 @@ import {UploadInputs} from './upload-inputs'
  */
 export function getInputs(): UploadInputs {
   const name = core.getInput(Inputs.Name)
-  const path = core.getInput(Inputs.Path, {required: true})
+  const individual = JSON.parse(core.getInput(Inputs.Individual))
+  const path = core.getInput(Inputs.Path, {required: true}).split(',')
 
   const ifNoFilesFound = core.getInput(Inputs.IfNoFilesFound)
   const noFileBehavior: NoFileOptions = NoFileOptions[ifNoFilesFound]
@@ -24,9 +25,10 @@ export function getInputs(): UploadInputs {
 
   const inputs = {
     artifactName: name,
+    individualArtifacts: individual,
     searchPath: path,
     ifNoFilesFound: noFileBehavior
-  } as UploadInputs
+  } as unknown as UploadInputs
 
   const retentionDaysStr = core.getInput(Inputs.RetentionDays)
   if (retentionDaysStr) {

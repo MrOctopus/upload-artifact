@@ -9,6 +9,7 @@ const stats = promisify(stat)
 export interface SearchResult {
   filesToUpload: string[]
   rootDirectory: string
+  isDirectory: boolean
 }
 
 function getDefaultGlobOptions(): glob.GlobOptions {
@@ -135,7 +136,8 @@ export async function findFilesToUpload(
 
     return {
       filesToUpload: searchResults,
-      rootDirectory: lcaSearchPath
+      rootDirectory: lcaSearchPath,
+      isDirectory: true
     }
   }
 
@@ -146,12 +148,14 @@ export async function findFilesToUpload(
   if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
     return {
       filesToUpload: searchResults,
-      rootDirectory: dirname(searchResults[0])
+      rootDirectory: dirname(searchResults[0]),
+      isDirectory: false
     }
   }
 
   return {
     filesToUpload: searchResults,
-    rootDirectory: searchPaths[0]
+    rootDirectory: searchPaths[0],
+    isDirectory: true
   }
 }

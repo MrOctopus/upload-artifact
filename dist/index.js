@@ -4022,12 +4022,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
 const artifact_1 = __webpack_require__(214);
-const fs_1 = __webpack_require__(747);
-const util_1 = __webpack_require__(669);
 const search_1 = __webpack_require__(575);
 const input_helper_1 = __webpack_require__(583);
 const constants_1 = __webpack_require__(694);
-const stats = util_1.promisify(fs_1.stat);
 function uploadArtifact(inputs, searchResult) {
     return __awaiter(this, void 0, void 0, function* () {
         if (searchResult.filesToUpload.length === 0) {
@@ -4063,8 +4060,7 @@ function uploadArtifact(inputs, searchResult) {
             }
             let artifactName = inputs.artifactName;
             if (inputs.individualArtifacts) {
-                const fileStats = yield stats(searchResult);
-                if (fileStats.isDirectory()) {
+                if (searchResult.isDirectory) {
                     core.info(`Using the root directory of the individual path as the artifact name.`);
                     artifactName = path.parse(searchResult.rootDirectory).base;
                 }
@@ -6559,7 +6555,8 @@ function findFilesToUpload(searchPath, globOptions) {
             core_1.info(`The least common ancestor is ${lcaSearchPath}. This will be the root directory of the artifact`);
             return {
                 filesToUpload: searchResults,
-                rootDirectory: lcaSearchPath
+                rootDirectory: lcaSearchPath,
+                isDirectory: true
             };
         }
         /*
@@ -6569,12 +6566,14 @@ function findFilesToUpload(searchPath, globOptions) {
         if (searchResults.length === 1 && searchPaths[0] === searchResults[0]) {
             return {
                 filesToUpload: searchResults,
-                rootDirectory: path_1.dirname(searchResults[0])
+                rootDirectory: path_1.dirname(searchResults[0]),
+                isDirectory: false
             };
         }
         return {
             filesToUpload: searchResults,
-            rootDirectory: searchPaths[0]
+            rootDirectory: searchPaths[0],
+            isDirectory: true
         };
     });
 }

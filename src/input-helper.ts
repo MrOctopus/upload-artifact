@@ -23,12 +23,12 @@ export function getInputs(): UploadInputs {
     )
   }
 
-  const inputs = {
+  const inputs = ({
     artifactName: name,
     individualArtifacts: individual,
     searchPath: path,
     ifNoFilesFound: noFileBehavior
-  } as unknown as UploadInputs
+  } as unknown) as UploadInputs
 
   const retentionDaysStr = core.getInput(Inputs.RetentionDays)
   if (retentionDaysStr) {

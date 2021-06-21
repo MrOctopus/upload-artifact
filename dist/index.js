@@ -4022,9 +4022,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
 const artifact_1 = __webpack_require__(214);
+const fs_1 = __webpack_require__(747);
+const util_1 = __webpack_require__(669);
 const search_1 = __webpack_require__(575);
 const input_helper_1 = __webpack_require__(583);
 const constants_1 = __webpack_require__(694);
+const stats = util_1.promisify(fs_1.stat);
 function uploadArtifact(inputs, searchResult) {
     return __awaiter(this, void 0, void 0, function* () {
         if (searchResult.filesToUpload.length === 0) {
@@ -4060,8 +4063,15 @@ function uploadArtifact(inputs, searchResult) {
             }
             let artifactName = inputs.artifactName;
             if (inputs.individualArtifacts) {
-                core.info(`Using the root directory of individual paths as the artifact name.`);
-                artifactName = path.parse(searchResult.rootDirectory).name;
+                const fileStats = yield stats(searchResult);
+                if (fileStats.isDirectory()) {
+                    core.info(`Using the root directory of the individual path as the artifact name.`);
+                    artifactName = path.parse(searchResult.rootDirectory).base;
+                }
+                else {
+                    core.info(`Using the name of the individual file as the artifact name.`);
+                    artifactName = path.parse(searchResult.filesToUpload[0]).name;
+                }
             }
             const uploadResponse = yield artifactClient.uploadArtifact(artifactName, searchResult.filesToUpload, searchResult.rootDirectory, options);
             if (uploadResponse.failedItems.length > 0) {

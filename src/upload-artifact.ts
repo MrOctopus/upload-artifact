@@ -1,9 +1,12 @@
 import * as core from '@actions/core'
-import * as path from 'path'; 
+import * as path from 'path'
 import {create, UploadOptions} from '@actions/artifact'
+import {stat} from 'fs'
+import {promisify} from 'util'
 import {findFilesToUpload} from './search'
 import {getInputs} from './input-helper'
 import {NoFileOptions} from './constants'
+const stats = promisify(stat)
 
 async function uploadArtifact(inputs, searchResult): Promise<void> {
   if (searchResult.filesToUpload.length === 0) {
@@ -52,10 +55,19 @@ async function uploadArtifact(inputs, searchResult): Promise<void> {
     let artifactName = inputs.artifactName
 
     if (inputs.individualArtifacts) {
-      core.info(
-        `Using the root directory of individual paths as the artifact name.`
-      )
-      artifactName = path.parse(searchResult.rootDirectory).name
+      const fileStats = await stats(searchResult)
+
+      if (fileStats.isDirectory()) {
+        core.info(
+          `Using the root directory of the individual path as the artifact name.`
+        )
+
+        artifactName = path.parse(searchResult.rootDirectory).base
+      } else {
+        core.info(`Using the name of the individual file as the artifact name.`)
+
+        artifactName = path.parse(searchResult.filesToUpload[0]).name
+      }
     }
 
     const uploadResponse = await artifactClient.uploadArtifact(
